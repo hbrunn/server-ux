@@ -99,6 +99,12 @@ class TierDefinition(models.Model):
         help="Number of days after which a message must be posted to remind about "
         "pending validation  (0 = no reminder)",
     )
+    comment_required_validate = fields.Boolean(
+        string="Comment required for validation", default=True
+    )
+    comment_required_reject = fields.Boolean(
+        string="Comment required for rejection", default=True
+    )
     approve_sequence = fields.Boolean(
         string="Approve by sequence",
         default=False,

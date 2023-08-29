@@ -115,6 +115,14 @@
                                     <field name="notify_on_restarted" />
                                     <field name="has_comment" />
                                     <field name="notify_reminder_delay" />
+                                    <field
+                                        name="comment_required_validate"
+                                        invisible="not has_comment"
+                                    />
+                                    <field
+                                        name="comment_required_reject"
+                                        invisible="not has_comment"
+                                    />
                                 </group>
                             </group>
                         </page>

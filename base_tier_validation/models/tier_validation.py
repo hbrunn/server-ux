@@ -77,16 +77,22 @@ class TierValidation(models.AbstractModel):
         compute="_compute_has_comment",
         help="If set, Allow the reviewer to leave a comment on the review.",
     )
+    comment_required_validate = fields.Boolean(compute="_compute_has_comment")
+    comment_required_reject = fields.Boolean(compute="_compute_has_comment")
     next_review = fields.Char(compute="_compute_next_review")
     hide_reviews = fields.Boolean(compute="_compute_hide_reviews")
 
     def _compute_has_comment(self):
         for rec in self:
-            has_comment = rec.review_ids.filtered(
+            reviews = rec.review_ids.filtered(
                 lambda r: r.status in ("waiting", "pending")
                 and self.env.user in r.reviewer_ids
-            ).mapped("has_comment")
-            rec.has_comment = True in has_comment
+            )
+            rec.has_comment = any(reviews.mapped("has_comment"))
+            rec.comment_required_validate = any(
+                reviews.mapped("comment_required_validate")
+            )
+            rec.comment_required_reject = any(reviews.mapped("comment_required_reject"))
 
     def _get_sequences_to_approve(self, user):
         all_reviews = self.review_ids.filtered(
@@ -631,7 +637,7 @@ class TierValidation(models.AbstractModel):
         reviews = self.review_ids.filtered(
             lambda x: x.sequence in sequences or x.approve_sequence_bypass
         )
-        if self.has_comment:
+        if self.has_comment and self.comment_required_validate:
             user_reviews = reviews.filtered(
                 lambda r: r.status == "pending" and (self.env.user in r.reviewer_ids)
             )
@@ -643,7 +649,7 @@ class TierValidation(models.AbstractModel):
         self.ensure_one()
         sequences = self._get_sequences_to_approve(self.env.user)
         reviews = self.review_ids.filtered(lambda x: x.sequence in sequences)
-        if self.has_comment:
+        if self.has_comment and self.comment_required_reject:
             return self._add_comment("reject", reviews)
         self._rejected_tier(reviews)
         self._update_counter({"review_deleted": True})
