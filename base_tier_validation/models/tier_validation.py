@@ -244,11 +244,24 @@ class TierValidation(models.AbstractModel):
             ),
             [],
         )
-        return list(
-            leaf[0]
-            for leaf in tier_domains
-            if is_leaf(leaf) and leaf[0] in self._fields
-        )
+        dependencies = []
+        for leaf in tier_domains:
+            if not is_leaf(leaf):
+                continue
+            field_name = leaf[0]
+            model = self
+            while "." in field_name:
+                field_name, tail = field_name.split(".", 1)
+                if field_name in model._fields:
+                    model = self.env[model._fields[field_name].comodel_name]
+                    field_name = tail
+                else:
+                    break
+            else:
+                if field_name in model._fields:
+                    dependencies.append(leaf[0])
+
+        return dependencies
 
     def evaluate_tier(self, tier):
         if tier.definition_domain:
